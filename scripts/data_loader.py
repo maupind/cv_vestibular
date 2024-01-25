@@ -122,14 +122,5 @@ def create_dataloaders(
     return train_dataloader, test_dataloader
 
 
-# Directory containing your video files
-#video_dir = '/home/danny/Documents/hpd_clips'
-
-
-
-#data_transform = transforms.Compose([
- #   transforms.Resize((224,224)),
-   # transforms.ToTensor()
-#])
 
 

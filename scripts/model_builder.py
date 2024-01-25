@@ -6,7 +6,7 @@ import torchvision
 
 class VestibularNetwork(nn.Module):
     """
-    Model architecture copying TinyVGG from: 
+    Model architecture inspired by TinyVGG from: 
     https://poloclub.github.io/cnn-explainer/
     """
     def __init__(self, input_shape: int, hidden_units: int, output_shape: int, num_classes: int, batch_size: int = 1):

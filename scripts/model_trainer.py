@@ -12,7 +12,7 @@ model = VestibularNetwork(input_shape = 3,
 
 
 train_dataloader, test_dataloader = create_dataloaders(
-    data_dir="/home/danny/Documents/hpd_test",
+    data_dir="/path/to/data/dir",
     transform=None,
     test_size=0.5,
     batch_size=1
