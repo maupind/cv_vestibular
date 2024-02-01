@@ -20,22 +20,12 @@ from ax.plot.slice import plot_slice
 from ax.service.ax_client import AxClient, ObjectiveProperties
 from ax.utils.notebook.plotting import render, init_notebook_plotting
 from ax.utils.testing.mock import fast_botorch_optimize_context_manager
-from data_loader import create_dataloaders
+from model_trainer import train_dataloader, test_dataloader
+from bayesian_optimisation import evaluate
+from model_builder import VestibularNetwork
 
-
-X_train_list = []
-y_train_list = []
-
-# Assuming train_loader is your PyTorch DataLoader containing (features, labels) tuples
-for batch in train_dataloader:
-    features, labels = batch
-    X_train_list.append(features)
-    y_train_list.append(labels)
-
-# Concatenate the list of tensors along the batch dimension
-X_train_tensor = torch.cat(X_train_list, dim=0)
-y_train_tensor = torch.cat(y_train_list, dim=0)
-
+# Utilise device agnostic code
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 botorch_model = BotorchModel(acquisition_function_type='qExpectedImprovement')
 
@@ -78,7 +68,12 @@ ax_client.create_experiment(
 
 for i in range(50):
     parameters, trial_index = ax_client.get_next_trial()
-    ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters))
+    ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters=parameters,
+                                                                        model=VestibularNetwork,
+                                                                        dataloader=train_dataloader,
+                                                                        loss_fn=torch.nn.BCELoss,
+                                                                        optimizer=optim.Adam,
+                                                                        device=device))
 
 model = ax_client.generation_strategy.model
 render(interact_contour(model=model, metric_name="auc_score_fold"))
@@ -93,15 +88,13 @@ best_parameters
 
 
 # Instantiate and train the best model
-best_model = NeuralNetClassifier(NeuralNetwork, 
-                                max_epochs=best_parameters['max_epochs'],
+best_model = VestibularNetwork(max_epochs=best_parameters['max_epochs'],
                                 criterion=torch.nn.BCELoss,
                                 device='cuda' if torch.cuda.is_available() else 'cpu',
                                 optimizer=optim.Adam,
                                 #optimizer__lr=best_parameters['learning_rate'],
                                 #optimizer__weight_decay=best_parameters['weight_decay'],
-                                iterator_train__batch_size=best_parameters['batch_size'],
-                                callbacks=[EarlyStopping(patience=50)]
+                                iterator_train__batch_size=best_parameters['batch_size']
                                 )
 
 

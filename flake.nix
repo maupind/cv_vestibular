@@ -33,6 +33,7 @@
           torch
           torchvision
           torchinfo
+          opencv4
           botorch
           ax
           matplotlib
