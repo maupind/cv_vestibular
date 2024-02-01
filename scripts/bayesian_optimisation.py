@@ -1,5 +1,9 @@
 import torch
-from data_loader import create_dataloaders
+from torch.utils.data import DataLoader
+from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_auc_score
+from tqdm.auto import tqdm
+from typing import Dict, List, Tuple
 
 # Utilise device agnostic code
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -7,9 +11,25 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 # Define the evaluation function for Bayesian optimization
-def evaluate(parameters: parameters,
-             ):
+def evaluate(parameters: str,
+             model: torch.nn.Module,
+             dataloader: torch.utils.data.DataLoader,
+             loss_fn: torch.nn.Module, 
+             optimizer: torch.optim.Optimizer,
+             device: torch.device) -> Tuple[float, float]:
     auc_values = []
+    X_train_list = []
+    y_train_list = []
+
+    # Assuming train_loader is your PyTorch DataLoader containing (features, labels) tuples
+    for batch in dataloader:
+        features, labels = batch
+        X_train_list.append(features)
+        y_train_list.append(labels)
+
+    # Concatenate the list of tensors along the batch dimension
+    X_train_tensor = torch.cat(X_train_list, dim=0)
+    y_train_tensor = torch.cat(y_train_list, dim=0)
     
     for train_idx, val_idx in skf.split(X_train_tensor.cpu().numpy(), y_train_tensor.cpu().numpy()):
         X_train_fold, X_val_fold = X_train_tensor[train_idx].to(device), X_train_tensor[val_idx].to(device)
@@ -28,14 +48,11 @@ def evaluate(parameters: parameters,
 
 
         # Train your model with the given hyperparameters
-        model = model
-        
-            NeuralNetClassifier(NeuralNetwork, max_epochs=parameters['max_epochs'],
+        model = model(max_epochs=parameters['max_epochs'],
                                     criterion=torch.nn.BCELoss,
                                     device=device,
-                                    optimizer = optim.Adam,
-                                    iterator_train__batch_size=parameters['batch_size'],
-                                    callbacks=[EarlyStopping(patience=50)]
+                                    optimizer = optimizer,
+                                    iterator_train__batch_size=parameters['batch_size']
                                     )
         print(f"Model Defined")
         model.fit(X_train_fold, y_train_fold)
