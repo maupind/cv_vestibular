@@ -2,63 +2,39 @@
 Contains functions for training and testing a PyTorch model using BoTorch Bayesian Optimisation
 """
 import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
 import botorch
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_auc_score
 from tqdm.auto import tqdm
 from typing import Dict, List, Tuple
-
- # Define the evaluation function for Bayesian optimization
-def evaluate(parameters):
-    auc_values = []
-    
-    for train_idx, val_idx in skf.split(X_train_tensor.cpu().numpy(), y_train_tensor.cpu().numpy()):
-        X_train_fold, X_val_fold = X_train_tensor[train_idx].to(device), X_train_tensor[val_idx].to(device)
-        y_train_fold, y_val_fold = y_train_tensor[train_idx].to(device), y_train_tensor[val_idx].to(device)
-
-        # Determine the optimizer based on the sampled parameters
-    # optimizer_choice = parameters['optimizer']
-    # if optimizer_choice == 'adam':
-    #     optimizer = torch.optim.Adam(lr=parameters['learning_rate'], weight_decay=parameters['weight_decay'])
-    # elif optimizer_choice == 'adagrad':
-    #     optimizer = torch.optim.Adagrad(lr=parameters['learning_rate'], weight_decay=parameters['weight_decay'])
-    # elif optimizer_choice == 'sgd':
-    #     optimizer = torch.optim.SGD(lr=parameters['learning_rate'], weight_decay=parameters['weight_decay'])
-    # else:
-    #     raise ValueError(f"Invalid optimizer choice: {optimizer_choice}")
+from ax import optimize
+from ax.models.torch.botorch import BotorchModel
+from ax.models.torch.botorch_modular.surrogate import Surrogate
+from ax.modelbridge.cross_validation import cross_validate
+from ax.plot.contour import interact_contour
+from ax.plot.diagnostic import interact_cross_validation
+from ax.plot.scatter import interact_fitted, plot_objective_vs_constraints, tile_fitted
+from ax.plot.slice import plot_slice
+from ax.service.ax_client import AxClient, ObjectiveProperties
+from ax.utils.notebook.plotting import render, init_notebook_plotting
+from ax.utils.testing.mock import fast_botorch_optimize_context_manager
+from data_loader import create_dataloaders
 
 
-        # Train your model with the given hyperparameters
-        model = NeuralNetClassifier(NeuralNetwork, max_epochs=parameters['max_epochs'],
-                                    criterion=torch.nn.BCELoss,
-                                    device=device,
-                                    optimizer = optim.Adam,
-                                    iterator_train__batch_size=parameters['batch_size'],
-                                    callbacks=[EarlyStopping(patience=50)]
-                                    )
-        print(f"Model Defined")
-        model.fit(X_train_fold, y_train_fold)
+X_train_list = []
+y_train_list = []
 
-        print(f"Model Fit")
+# Assuming train_loader is your PyTorch DataLoader containing (features, labels) tuples
+for batch in train_dataloader:
+    features, labels = batch
+    X_train_list.append(features)
+    y_train_list.append(labels)
 
-        # Predict probabilities for validation set
-        y_val_pred_probs = model.predict_proba(X_val_fold)[:, 1]
-
-        print(f"probabilities predicted")
-
-        y_val_fold_cpu = y_val_fold.cpu().numpy()
-
-        print(f"converted validation fols to cpu")
-
-        # Compute AUC for validation set
-        auc_score_fold = roc_auc_score(y_val_fold_cpu, y_val_pred_probs)
-        auc_values.append(auc_score_fold)
-
-        print(f"calculated AUC")
-        # if auc_score_fold > best_auc:
-        best_auc = auc_score_fold
-        return{'auc_score_fold': auc_score_fold}
-
-
+# Concatenate the list of tensors along the batch dimension
+X_train_tensor = torch.cat(X_train_list, dim=0)
+y_train_tensor = torch.cat(y_train_list, dim=0)
 
 
 botorch_model = BotorchModel(acquisition_function_type='qExpectedImprovement')
