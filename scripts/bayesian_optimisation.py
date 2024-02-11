@@ -4,10 +4,17 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_auc_score
 from tqdm.auto import tqdm
 from typing import Dict, List, Tuple
+import numpy as np
+from botorch.cross_validation import batch_cross_validation, gen_loo_cv_folds
+from botorch.models import FixedNoiseGP
+from gpytorch.mlls import ExactMarginalLogLikelihood
+import torch
+
 
 # Utilise device agnostic code
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+skf = StratifiedKFold(n_splits=2, shuffle=True, random_state=33)
 
 
 # Define the evaluation function for Bayesian optimization
@@ -19,21 +26,121 @@ def evaluate(parameters: str,
              device: torch.device) -> Tuple[float, float]:
     auc_values = []
     X_train_list = []
-    y_train_list = []
+    y_train_list = []  
 
-    # Assuming train_loader is your PyTorch DataLoader containing (features, labels) tuples
-    for batch in dataloader:
-        features, labels = batch
-        X_train_list.append(features)
-        y_train_list.append(labels)
+    model = model.to(device)
+    model.train()
+
+    # Your existing code for setting up the optimizer
+
+    for batch_idx, (video_frames_batch, outcomes) in enumerate(dataloader):
+        X_train_tensor = torch.tensor(video_frames_batch, dtype=torch.float).to(device)
+        y_train_tensor = outcomes.float().unsqueeze(1).to(device)
+
+        # Perform forward pass
+        outputs = model(X_train_tensor)
+        print(f"show the outputs {outputs}")
+        print(f"show the true outcomes {y_train_tensor}")
+        # Compute loss
+        loss = loss_fn(outputs, y_train_tensor)
+        print("calculate loss")
+        # Perform backward pass and optimization
+        optimizer.zero_grad()
+        print("zero grad")
+        print(f"show the loss {loss}")
+        loss.backward()
+        optimizer.step()
+
+    # Return evaluation metrics or other relevant information
+    return roc_auc_score
+
+    #for batch_idx, (video_frames_batch, outcomes) in enumerate(dataloader):
+        # Convert video_frames_batch and label_features_batch to tensors
+       # print("Label Features non tensor", label_features_batch)
+     #   X_train_tensor = torch.tensor(video_frames_batch, dtype=torch.float)  # Assuming your video frames are of type float
+      #  print(X_train_tensor.shape)
+       # label_features_tensor_list = [torch.tensor(tensor_item) for tensor_item in label_features_batch] 
+        #print("Pre Label Features after creating list of tensors", label_features_tensor_list)
+        
+        #label_features_tensor = torch.Tensor(label_features_tensor_list)
+        #print("Pre Label Features after joining list of tensors", label_features_tensor.shape)
+        #label_features_tensor_match = label_features_tensor.unsqueeze(1).unsqueeze(2).unsqueeze(3).unsqueeze(4)
+
+        #print("Video Frames", video_frames_tensor.shape)
+        #print("Label Features", label_features_tensor_match.shape)
+        # Append tensors and labels to lists
+        #X_train_list.append((video_frames_tensor, label_features_tensor))
+        
+        # Convert outcomes_batch to a list of flat labels
+       # outcomes_flat = [label.item() for label in outcomes]
+        #y_train_list.append(outcomes_flat)
 
     # Concatenate the list of tensors along the batch dimension
-    X_train_tensor = torch.cat(X_train_list, dim=0)
-    y_train_tensor = torch.cat(y_train_list, dim=0)
-    
-    for train_idx, val_idx in skf.split(X_train_tensor.cpu().numpy(), y_train_tensor.cpu().numpy()):
-        X_train_fold, X_val_fold = X_train_tensor[train_idx].to(device), X_train_tensor[val_idx].to(device)
-        y_train_fold, y_val_fold = y_train_tensor[train_idx].to(device), y_train_tensor[val_idx].to(device)
+       # X_train_tensor_list = [torch.cat((video_frames_tensor, label_features_tensor_match), dim=1).to(device) for video_frames_tensor, label_features_tensor in X_train_list]
+        #y_train_tensor = torch.tensor(y_train_list)
+        #print(y_train_tensor.shape)
+        #y_var_tensor = torch.full_like(y_train_tensor, 0.2)
+
+
+        # Train your model with the given hyperparameters
+        #model = model(max_epochs=parameters['max_epochs'],
+         #                       criterion=torch.nn.BCELoss,
+          #                      device=device,
+           #                     optimizer = optimizer,
+            #                    iterator_train__batch_size=parameters['batch_size']
+             #                   )
+        #print(f"Model Defined")
+        #model.fit(X_train_tensor, y_train_tensor)
+
+        #print(f"Model Fit")
+
+        # Predict probabilities for validation set
+       ## y_val_pred_probs = model.predict_proba(X_val_fold)[:, 1]
+
+        #print(f"probabilities predicted")
+
+        #y_val_fold_cpu = y_val_fold.cpu().numpy()
+
+        #print(f"converted validation fols to cpu")
+
+        # Compute AUC for validation set
+        #auc_score_fold = roc_auc_score(y_val_fold_cpu, y_val_pred_probs)
+        #auc_values.append(auc_score_fold)
+
+        #print(f"calculated AUC")
+        #if auc_score_fold > best_auc:
+         #   best_auc = auc_score_fold
+          #  return{'auc_score_fold': auc_score_fold}
+
+        # Generate k-fold cross-validation folds
+        #cv_folds = gen_loo_cv_folds(
+        #    train_X=X_train_tensor,
+        #    train_Y=y_train_tensor
+        #)
+
+        # Perform cross-validation
+        #model_cls = FixedNoiseGP
+        #mll_cls = ExactMarginalLogLikelihood
+
+        #cv_results = batch_cross_validation(
+         #   model_cls=model_cls,
+          #  mll_cls=mll_cls,
+           # cv_folds=2,
+            #fit_args=None,
+            #observation_noise=False,
+        #)
+
+        # Compute the mean and standard deviation of the performance metric
+        #mean_auc_score_fold = cv_results.mean().item()
+        #std_auc_score_fold = cv_results.std().item()
+  
+    #for train_idx, val_idx in skf.split(X_train_list, y_train_list):
+        #train_idx = np.array(train_idx, dtype=int)  # Convert train_idx to a numpy array
+        #val_idx = np.array(val_idx, dtype=int)  # Convert val_idx to a numpy array
+
+        #X_train_fold, X_val_fold = X_train_list[train_idx], X_train_list[val_idx]
+        #y_train_fold, y_val_fold = y_train_list[train_idx], y_train_list[val_idx]
+
 
         # Determine the optimizer based on the sampled parameters
     # optimizer_choice = parameters['optimizer']
@@ -47,33 +154,5 @@ def evaluate(parameters: str,
     #     raise ValueError(f"Invalid optimizer choice: {optimizer_choice}")
 
 
-        # Train your model with the given hyperparameters
-        model = model(max_epochs=parameters['max_epochs'],
-                                    criterion=torch.nn.BCELoss,
-                                    device=device,
-                                    optimizer = optimizer,
-                                    iterator_train__batch_size=parameters['batch_size']
-                                    )
-        print(f"Model Defined")
-        model.fit(X_train_fold, y_train_fold)
 
-        print(f"Model Fit")
-
-        # Predict probabilities for validation set
-        y_val_pred_probs = model.predict_proba(X_val_fold)[:, 1]
-
-        print(f"probabilities predicted")
-
-        y_val_fold_cpu = y_val_fold.cpu().numpy()
-
-        print(f"converted validation fols to cpu")
-
-        # Compute AUC for validation set
-        auc_score_fold = roc_auc_score(y_val_fold_cpu, y_val_pred_probs)
-        auc_values.append(auc_score_fold)
-
-        print(f"calculated AUC")
-        # if auc_score_fold > best_auc:
-        best_auc = auc_score_fold
-        return{'auc_score_fold': auc_score_fold}
 
