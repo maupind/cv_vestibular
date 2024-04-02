@@ -28,7 +28,7 @@ class VestibularNetwork(nn.Module):
             nn.MaxPool2d(kernel_size=2,
                          stride=2) # default stride value is same as kernel_size
         )
-        #self.label_block = nn.Sequential(
+        #self.label_block = nn.SequenThe batch_size parameter is set to 1 by default, but it's also used as an argument in the method signature. This could lead to confusion about which value is actually being used for the batch size during the forward pass.tial(
          #   nn.Linear(in_features=1, out_features=1),
          #   nn.ReLU()
         #)
@@ -45,29 +45,61 @@ class VestibularNetwork(nn.Module):
         self.lstm = nn.LSTM(input_size=hidden_units, hidden_size=hidden_units, batch_first=True)
     
 
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            # Where did this in_features shape come from? 
-            # It's because each layer of our network compresses and changes the shape of our inputs data.
-            
-            nn.Linear(in_features=hidden_units,
-                      out_features=output_shape)
-        )
-    
-    def forward(self, video_frames = None, batch_size: int = 1):
-        if video_frames is None:
-        # If video_frames is not provided, use the default training data tensor (X_train_tensor)
-            video_frames = X_train_tensor
+        self.classifier = nn.Linear(in_features=hidden_units, out_features=1)
+
+    def forward(self, video_frames, batch_size):
         # Process video frames
         video_frames = video_frames.float()
-        batch_size, sequence_length, channels, height, width = video_frames.size()
-        video_frames_reshaped = video_frames.reshape(batch_size * sequence_length, channels, height, width)
+        (batch_size, sequence_length, channels, height, width) = video_frames.size()
+        video_frames_reshaped = video_frames.view(batch_size*sequence_length, channels, height, width)
         #video_frames = video_frames.permute(2, 0, 1).unsqueeze(0)
         #video_frames = video_frames.repeat(batch_size, 1, 1, 1)
         print("Video size:", video_frames_reshaped.shape)
+        x_list = []
+        for i in range(batch_size):
+            # Process each batch separately
+            x_batch = self.video_block(video_frames_reshaped[i * sequence_length:(i + 1) * sequence_length])
+            x_batch = self.common_block(x_batch)
+            x_batch = torch.mean(x_batch, dim=[2, 3])  # Pooling or flattening operation, adjust as needed
+            x_list.append(x_batch)
 
-        x = self.video_block(video_frames_reshaped)
-        print(f"block1: {x.shape}")
+            # Concatenate the outputs of all batches
+        x = torch.cat(x_list, dim=0)
+        print(f"after cat: {x.shape}")
+
+        # Reshape for LSTM input
+        x = x.view(batch_size, sequence_length, -1)
+
+        # Apply LSTM
+        lstm_out, _ = self.lstm(x)
+
+        # Aggregate predictions using the final state of the LSTM
+        lstm_out = lstm_out[:, -1, :]
+
+        # Apply classifier
+        x = self.classifier(lstm_out)
+        print(f"classifier: {x.shape}")
+
+        return x
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+################### Initial trial with LSTM and labels ##########################3
+      # x = self.video_block(video_frames_reshaped)
+      #  print(f"block 1 {x.shape}")
         # Process labels
        # labels = labels.float()
        # print("Label dtype:", labels.dtype)
@@ -82,18 +114,23 @@ class VestibularNetwork(nn.Module):
         #x = torch.cat((video_x, label_x), dim=1)
         #print("Post concatenate output", x)
         # Continue with the common block and classifier
-        x = self.common_block(x)
-        print(f"block2: {x.shape}")
-         # Apply LSTM
-        x = x.view(batch_size, sequence_length, -1)  # Reshape for LSTM
-        lstm_out, _ = self.lstm(x)
+      #  x = self.common_block(x)
+      #  print(f"block 2 {x.shape}")
+        # Flatten spatial dimensions
+      #  x = torch.mean(x, dim=[2, 3])  # Pooling or flattening operation, adjust as needed
+      #  print(f"After pooling/flattening: {x.shape}")
+
+        # Apply classifier
+        #x = self.classifier(x)
+       # print(f"block3: {x.shape}")
+        #x = x[:, -1, :]
+       # lstm_out, _ = self.lstm(x)
         
-        # Aggregate predictions using the final hidden state of the LSTM
-        lstm_out = lstm_out[:, -1, :]  # Take the last timestep's output
-        print(f"lstm {lstm_out.shape}")
-        x = self.classifier(lstm_out)
-        print(f"block3: {x.shape}")
-        return x
+        # Aggregate predictions using the final state of the LSTM
+       # lstm_out = lstm_out[: -1, :]  # Take the last timestep's output
+        #print(f"lstm {lstm_out.shape}")
+       # print(f"lstm output {lstm_out}")
+       # return x
 
 
        

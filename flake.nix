@@ -21,6 +21,7 @@
       python = pkgs.python311.override {packageOverrides = pythonOverrides;};
       pythonEnv = python.withPackages (ps:
         with ps; [
+          xgboost
           pyarrow
           packaging
           pip
@@ -31,11 +32,11 @@
           scikit-learn
           notebook
           torch
-          torchvision
           torchinfo
-          opencv4
           botorch
+          skorch
           ax
+          opencv4
           matplotlib
           joblib
         ]);

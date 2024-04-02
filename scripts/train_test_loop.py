@@ -24,6 +24,11 @@ from model_trainer import train_dataloader, test_dataloader, vest_model
 from bayesian_optimisation import evaluate
 from model_builder import VestibularNetwork
 
+if torch.cuda.is_available():
+    print("CUDA is available! You can use the GPU for computation.")
+else:
+    print("CUDA is not available. You can only use CPU for computation.")
+
 # Utilise device agnostic code
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -51,7 +56,7 @@ ax_client.create_experiment(
             {
                 "name": "learning_rate", 
                 "type": "range", 
-                "bounds": [1e-4, 1e-1], 
+                "bounds": [1e-4, 1e-1],
                 "log_scale": True
             },
             {
@@ -72,7 +77,7 @@ for i in range(5):
     ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters=parameters,
                                                                         model=vest_model,
                                                                         dataloader=train_dataloader,
-                                                                        loss_fn=torch.nn.BCELoss(),
+                                                                        loss_fn=torch.nn.BCEWithLogitsLoss(),
                                                                         optimizer=optim.Adam(vest_model.parameters()),
                                                                         device=device))
     cv = cross_validate(model=ax_client.generation_strategy.model, folds=-1)

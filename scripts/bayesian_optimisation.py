@@ -11,6 +11,7 @@ from gpytorch.mlls import ExactMarginalLogLikelihood
 import torch
 
 
+
 # Utilise device agnostic code
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -25,8 +26,11 @@ def evaluate(parameters: str,
              optimizer: torch.optim.Optimizer,
              device: torch.device) -> Tuple[float, float]:
     auc_values = []
+    loss_values = []
     X_train_list = []
     y_train_list = []  
+
+    max_norm = 1.0
 
     model = model.to(device)
     model.train()
@@ -36,23 +40,45 @@ def evaluate(parameters: str,
     for batch_idx, (video_frames_batch, outcomes) in enumerate(dataloader):
         X_train_tensor = torch.tensor(video_frames_batch, dtype=torch.float).to(device)
         y_train_tensor = outcomes.float().unsqueeze(1).to(device)
+        if torch.any(torch.isnan(X_train_tensor)) | (torch.any(torch.isnan(y_train_tensor))):
+            print("nan values found")
+
+        print(f"show the train tensor {X_train_tensor}")
 
         # Perform forward pass
-        outputs = model(X_train_tensor)
+        outputs = model(X_train_tensor, batch_size = 1)
         print(f"show the outputs {outputs}")
-        print(f"show the true outcomes {y_train_tensor}")
+        #print(f"show the train tensor {X_train_tensor}")
+        #print(f"show the true outcomes {y_train_tensor}")
         # Compute loss
+        print("Output shape:", outputs.shape)
+        #print("Target shape:", y_train_tensor.shape)
         loss = loss_fn(outputs, y_train_tensor)
+
         print("calculate loss")
         # Perform backward pass and optimization
         optimizer.zero_grad()
         print("zero grad")
         print(f"show the loss {loss}")
         loss.backward()
+        print("backward loss")
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step()
+        print("optimiser")
+        loss_values.append(loss.item())
+        # Compute ROC AUC score
+        auc_value = roc_auc_score(y_train_tensor.cpu().numpy(), outputs.detach().cpu().numpy())
+        auc_values.append(auc_value)
+        print("auc complete")
 
-    # Return evaluation metrics or other relevant information
-    return roc_auc_score
+
+    # Compute average loss
+    avg_loss = sum(loss_values) / len(loss_values)
+
+    # Compute average ROC AUC score
+    avg_auc = sum(auc_values) / len(auc_values)
+
+    return avg_loss, avg_auc
 
     #for batch_idx, (video_frames_batch, outcomes) in enumerate(dataloader):
         # Convert video_frames_batch and label_features_batch to tensors
