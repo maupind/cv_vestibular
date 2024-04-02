@@ -4,8 +4,9 @@ import re
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
 from sklearn.model_selection import train_test_split
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, TensorDataset, Subset
 from torchvision import transforms
 
 NUM_WORKERS = os.cpu_count()
@@ -13,11 +14,15 @@ NUM_WORKERS = os.cpu_count()
 
 
 class VideoDataset(Dataset):
-    def __init__(self, video_dir):
+    def __init__(self, video_dir, video_transform = None, clip_length = 10):
+        super(VideoDataset).__init__()
         self.video_dir = video_dir
         self.video_files = [file for file in os.listdir(video_dir) if file.endswith('.mp4')]
-
         self.labels = [self.extract_label(file) for file in self.video_files]
+        self.outcomes = [label[2] for label in self.labels]
+        self.label_features = [self.extract_label(file)[:2] for file in self.video_files]  # Ignore outcome label
+        self.video_transform = video_transform
+        self.clip_length = clip_length
 
     def __len__(self):
         return len(self.video_files)
@@ -25,19 +30,44 @@ class VideoDataset(Dataset):
     def __getitem__(self, index):
         video_file= self.video_files[index]
         label = self.labels[index]
+        # Ensuring outcome is a 1D tensor
+        outcome = torch.tensor(label[2])
+        # Create a new tuple for label without modifying the original label
+        label_without_outcome = (torch.tensor(label[0]), torch.tensor(label[1]))
 
-        video_frames = self.load_video_frames(os.path.join(self.video_dir, video_file))
+        # Update the variable name to reflect the change
+        label = label_without_outcome
 
-        # Convert NumPy arrays to PyTorch tensors
-        video_frames = [torch.from_numpy(frame) for frame in video_frames]
+        video_path = os.path.join(self.video_dir, video_file)
 
-        # Stack the frames along a new dimension to create a 4D tensor (sequence of frames)
-        video_frames = torch.stack(video_frames, dim=0)
+        # Open video file
+        cap = cv2.VideoCapture(video_path)
 
-        # Convert label to a tuple of PyTorch tensors
-        label = (torch.tensor(label[0]), torch.tensor(label[1]))
-        
-        return video_frames, (label[0], label[1])   
+        # Read frames dynamically
+        frames = []
+        frame_count = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frames.append(frame)
+            frame_count += 1
+
+            # Check if enough frames are read
+            if frame_count >= self.clip_length:
+                break
+
+        # Release video capture object
+        cap.release()
+
+        # Apply transformations if specified
+        if self.video_transform:
+            frames = [self.video_transform(frame) for frame in frames]
+
+        # Convert frames to tensor
+        frames = torch.stack(frames)
+
+        return frames, outcome
 
     def extract_label(self, filename):
         # Example: Extract labels using regular expression
@@ -50,26 +80,33 @@ class VideoDataset(Dataset):
         else:
             return (-1, -1, -1)  # Default labels if not found
     
-    def load_video_frames(self, video_path):
-        cap = cv2.VideoCapture(video_path)
+   # def load_video_frames(self, video_path):
+    #    cap = cv2.VideoCapture(video_path)
 
-        frames = []
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frames.append(frame)
+     #   frames = []
+      #  while cap.isOpened():
+       #     ret, frame = cap.read()
+        #    if not ret:
+         #       break
+          #  frames.append(frame)
 
-        cap.release()
+        #cap.release()
+        #return frames
+
+    def adjust_clip_length(self, frames):
+        # Adjust clip length by selecting a subset of frames
+        if len(frames) > self.clip_length:
+            start_idx = (len(frames) - self.clip_length) // 2
+            frames = frames[start_idx:start_idx + self.clip_length]
         return frames
-
 
 def create_dataloaders(
     data_dir: str,
     transform: transforms.Compose,
     test_size: int,
     batch_size: int,
-    num_workers: int=NUM_WORKERS
+    num_workers: int=NUM_WORKERS,
+    random_seed: int = 33
 ):
     """
     Loads data using the VideoDataset class, splits into test/train, and turns them into a dataset and then dataloader
@@ -87,24 +124,26 @@ def create_dataloaders(
 
     """
     # Load the data
-    video_dataset=VideoDataset(video_dir=data_dir)
+    video_dataset=VideoDataset(video_dir=data_dir, video_transform = transform, clip_length=10)
+    y = video_dataset.outcomes
+    combined_data = (video_dataset.video_files, video_dataset.label_features)
+    X = combined_data
 
-    X = video_dataset
 
-    y = [label[2] for label in video_dataset.labels]
+
+
 
     # Split into test/train
-    X_train, X_test, y_train, y_test = train_test_split(
-    X, 
-    y, 
+    train_idx, test_idx = train_test_split(np.arange(len(video_dataset)), 
     test_size=test_size, 
     random_state=33, 
-    stratify = y)
-
-   
+    stratify = video_dataset.outcomes)
+  
+    train_dataset = Subset(video_dataset, train_idx)
+    test_dataset = Subset(video_dataset, test_idx)
 
     train_dataloader = DataLoader(
-        X_train,
+        train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
@@ -112,15 +151,14 @@ def create_dataloaders(
     )
 
     test_dataloader = DataLoader(
-        X_test,
+        test_dataset,
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
         pin_memory=True
     )
 
-    return train_dataloader, test_dataloader
-
+    return train_dataloader, test_dataloader, video_dataset
 
 
 

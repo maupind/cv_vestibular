@@ -20,9 +20,14 @@ from ax.plot.slice import plot_slice
 from ax.service.ax_client import AxClient, ObjectiveProperties
 from ax.utils.notebook.plotting import render, init_notebook_plotting
 from ax.utils.testing.mock import fast_botorch_optimize_context_manager
-from model_trainer import train_dataloader, test_dataloader
+from model_trainer import train_dataloader, test_dataloader, vest_model
 from bayesian_optimisation import evaluate
 from model_builder import VestibularNetwork
+
+if torch.cuda.is_available():
+    print("CUDA is available! You can use the GPU for computation.")
+else:
+    print("CUDA is not available. You can only use CPU for computation.")
 
 # Utilise device agnostic code
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -51,7 +56,7 @@ ax_client.create_experiment(
             {
                 "name": "learning_rate", 
                 "type": "range", 
-                "bounds": [1e-4, 1e-1], 
+                "bounds": [1e-4, 1e-1],
                 "log_scale": True
             },
             {
@@ -66,14 +71,17 @@ ax_client.create_experiment(
 )
 
 
-for i in range(50):
+
+for i in range(5):
     parameters, trial_index = ax_client.get_next_trial()
     ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters=parameters,
-                                                                        model=VestibularNetwork,
+                                                                        model=vest_model,
                                                                         dataloader=train_dataloader,
-                                                                        loss_fn=torch.nn.BCELoss,
-                                                                        optimizer=optim.Adam,
+                                                                        loss_fn=torch.nn.BCEWithLogitsLoss(),
+                                                                        optimizer=optim.Adam(vest_model.parameters()),
                                                                         device=device))
+    cv = cross_validate(model=ax_client.generation_strategy.model, folds=-1)
+    cv.evaluate(parameters=parameters)
 
 model = ax_client.generation_strategy.model
 render(interact_contour(model=model, metric_name="auc_score_fold"))
