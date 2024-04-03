@@ -18,7 +18,7 @@ transform = transforms.Compose([
 
 
 train_dataloader, test_dataloader, video_dataset = create_dataloaders(
-    data_dir="/home/danny/Documents/hpd_test",
+    data_dir="/home/danny/Documents/hpd_clips_test",
     transform=transform,
     test_size=0.5,
     batch_size=2

@@ -43,11 +43,11 @@ ax_client = AxClient()
 ax_client.create_experiment(
     name="test_visualizations",
     parameters = [
-            {
-                "name": "batch_size",
-                "type": "range", 
-                "bounds": [16, 128]
-            },
+           # {
+            #    "name": "batch_size",
+            #    "type": "range", 
+            #    "bounds": [16, 128]
+            #},
             {
                 "name": "max_epochs",
                 "type": "range", 
@@ -66,25 +66,33 @@ ax_client.create_experiment(
                 "log_scale": True
             },
     ],
-    objective_name= "auc_score_fold",
+    objective_name= "accuracy",
     minimize= False,
 )
 
 
 
-for i in range(5):
+for i in range(3):
     parameters, trial_index = ax_client.get_next_trial()
-    ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters=parameters,
-                                                                        model=vest_model,
-                                                                        dataloader=train_dataloader,
-                                                                        loss_fn=torch.nn.BCEWithLogitsLoss(),
-                                                                        optimizer=optim.Adam(vest_model.parameters()),
-                                                                        device=device))
+    # Evaluate the current set of parameters.
+    evaluation_result = evaluate(parameters=parameters,
+                                 model=vest_model,
+                                 dataloader=train_dataloader,
+                                 loss_fn=torch.nn.BCEWithLogitsLoss(),
+                                 optimizer=optim.Adam(vest_model.parameters()),
+                                 device=device)
+    # Ensure evaluation_result is a Python float.
+    #if isinstance(evaluation_result, torch.Tensor):
+    #    evaluation_result = evaluation_result.item()  # Converts tensor to float
+
+    # Complete the trial with the converted result.
+    ax_client.complete_trial(trial_index=trial_index, raw_data=evaluation_result)
     cv = cross_validate(model=ax_client.generation_strategy.model, folds=-1)
     cv.evaluate(parameters=parameters)
+    print(f"finished trial")
 
 model = ax_client.generation_strategy.model
-render(interact_contour(model=model, metric_name="auc_score_fold"))
+#render(interact_contour(model=model, metric_name="avg_accuracy"))
 
 render(ax_client.get_optimization_trace()) 
 

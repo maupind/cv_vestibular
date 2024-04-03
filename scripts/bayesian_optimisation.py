@@ -27,6 +27,7 @@ def evaluate(parameters: str,
              device: torch.device) -> Tuple[float, float]:
     auc_values = []
     loss_values = []
+    accuracy_values = []
     X_train_list = []
     y_train_list = []  
 
@@ -34,6 +35,9 @@ def evaluate(parameters: str,
 
     model = model.to(device)
     model.train()
+
+    all_outputs = torch.tensor([], dtype=torch.float).to(device)
+    all_labels = torch.tensor([], dtype=torch.float).to(device)
 
     # Your existing code for setting up the optimizer
 
@@ -43,42 +47,54 @@ def evaluate(parameters: str,
         if torch.any(torch.isnan(X_train_tensor)) | (torch.any(torch.isnan(y_train_tensor))):
             print("nan values found")
 
-        print(f"show the train tensor {X_train_tensor}")
+        #print(f"show the train tensor {X_train_tensor}")
 
         # Perform forward pass
         outputs = model(X_train_tensor, batch_size = 1)
-        print(f"show the outputs {outputs}")
+        #print(f"show the outputs {outputs}")
         #print(f"show the train tensor {X_train_tensor}")
         #print(f"show the true outcomes {y_train_tensor}")
         # Compute loss
-        print("Output shape:", outputs.shape)
+        #print("Output shape:", outputs.shape)
         #print("Target shape:", y_train_tensor.shape)
         loss = loss_fn(outputs, y_train_tensor)
+        # Detach the loss from the computation graph, move it to CPU, and convert it to a Python number
+        loss_value = loss.detach().cpu().item()
 
+        # Append the detached loss value to the list
+        loss_values.append(loss_value)
         print("calculate loss")
         # Perform backward pass and optimization
         optimizer.zero_grad()
         print("zero grad")
         print(f"show the loss {loss}")
-        loss.backward()
-        print("backward loss")
+        #print(f"clip grads")
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+        print(f"start backwards")
+        loss.backward()
+        #print("backward loss")
         optimizer.step()
         print("optimiser")
-        loss_values.append(loss.item())
         # Compute ROC AUC score
-        auc_value = roc_auc_score(y_train_tensor.cpu().numpy(), outputs.detach().cpu().numpy())
-        auc_values.append(auc_value)
-        print("auc complete")
+        #all_outputs = torch.cat((all_outputs, outputs.detach()), dim=0)
+        #all_labels = torch.cat((all_labels, y_train_tensor), dim=0)
+        #print("auc complete")
+        # Calculate accuracy
+        predictions = (outputs > 0.5).float()  # Assuming binary classification
+        correct_predictions = (predictions == y_train_tensor).float().sum().item()
+        accuracy = correct_predictions / len(y_train_tensor)
+        accuracy_values.append(accuracy)
 
 
     # Compute average loss
     avg_loss = sum(loss_values) / len(loss_values)
+    avg_accuracy = sum(accuracy_values) / len(accuracy_values)
+    #auc_score = roc_auc_score(all_outputs.cpu().numpy(), all_labels.cpu().numpy())
+    #print(f"AUC Score over all data: {auc_score}")
+
 
     # Compute average ROC AUC score
-    avg_auc = sum(auc_values) / len(auc_values)
-
-    return avg_loss, avg_auc
+    return{'accuracy': avg_accuracy}
 
     #for batch_idx, (video_frames_batch, outcomes) in enumerate(dataloader):
         # Convert video_frames_batch and label_features_batch to tensors
