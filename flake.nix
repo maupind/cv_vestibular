@@ -13,7 +13,7 @@
       inherit system;
       config.allowUnfree = true;
       #Didn't test this to spare my poor CPU
-      #config.cudaSupport = true;
+      config.cudaSupport = true;
     };
   in {
     devShells.${system}.default = let
@@ -21,7 +21,6 @@
       python = pkgs.python311.override {packageOverrides = pythonOverrides;};
       pythonEnv = python.withPackages (ps:
         with ps; [
-          xgboost
           pyarrow
           packaging
           pip
@@ -33,6 +32,7 @@
           notebook
          torch
          torchinfo
+	 torchvision
           botorch
           skorch
           ax
