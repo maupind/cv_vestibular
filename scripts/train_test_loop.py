@@ -2,6 +2,7 @@
 Contains functions for training and testing a PyTorch model using BoTorch Bayesian Optimisation
 """
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
@@ -23,6 +24,7 @@ from ax.utils.testing.mock import fast_botorch_optimize_context_manager
 from model_trainer import train_dataloader, test_dataloader, vest_model
 from bayesian_optimisation import evaluate
 from model_builder import VestibularNetwork
+import random
 
 if torch.cuda.is_available():
     print("CUDA is available! You can use the GPU for computation.")
@@ -51,12 +53,12 @@ ax_client.create_experiment(
             {
                 "name": "max_epochs",
                 "type": "range", 
-                "bounds": [10, 100]
+                "bounds": [1, 20]
             },
             {
                 "name": "learning_rate", 
                 "type": "range", 
-                "bounds": [1e-4, 1e-1],
+                "bounds": [1e-4, 1e-3],
                 "log_scale": True
             },
             {
@@ -70,7 +72,13 @@ ax_client.create_experiment(
     minimize= False,
 )
 
+def set_random_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
+set_random_seed(33)
 
 for i in range(3):
     parameters, trial_index = ax_client.get_next_trial()
@@ -87,8 +95,8 @@ for i in range(3):
 
     # Complete the trial with the converted result.
     ax_client.complete_trial(trial_index=trial_index, raw_data=evaluation_result)
-    cv = cross_validate(model=ax_client.generation_strategy.model, folds=-1)
-    cv.evaluate(parameters=parameters)
+    #cv = cross_validate(model=ax_client.generation_strategy.model, folds=-1)
+    #cv.evaluate(parameters=parameters)
     print(f"finished trial")
 
 model = ax_client.generation_strategy.model

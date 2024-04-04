@@ -41,7 +41,19 @@ def evaluate(parameters: str,
 
     # Your existing code for setting up the optimizer
 
+    def check_gradients(model):
+        for name, param in model.named_parameters():
+            if param.grad is not None:
+                if torch.isnan(param.grad).any() or torch.isinf(param.grad).any():
+                    print(f"Parameter {name} has NaNs or Infs in gradients.")
+                else:
+                    print(f"Parameter {name} gradients are OK.")
+            else:
+                print(f"No gradients for parameter {name}.")
+
+
     for batch_idx, (video_frames_batch, outcomes) in enumerate(dataloader):
+        print(f"frame batch {video_frames_batch}")
         X_train_tensor = torch.tensor(video_frames_batch, dtype=torch.float).to(device)
         y_train_tensor = outcomes.float().unsqueeze(1).to(device)
         if torch.any(torch.isnan(X_train_tensor)) | (torch.any(torch.isnan(y_train_tensor))):
@@ -50,7 +62,7 @@ def evaluate(parameters: str,
         #print(f"show the train tensor {X_train_tensor}")
 
         # Perform forward pass
-        outputs = model(X_train_tensor, batch_size = 1)
+        outputs = model(X_train_tensor)
         #print(f"show the outputs {outputs}")
         #print(f"show the train tensor {X_train_tensor}")
         #print(f"show the true outcomes {y_train_tensor}")
@@ -72,6 +84,13 @@ def evaluate(parameters: str,
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         print(f"start backwards")
         loss.backward()
+        #check_gradients(model)
+        for name, param in model.named_parameters():
+            if param.grad is not None:
+                print(f"Parameter {name}:")
+                print(param.grad)
+            else:
+                print(f"No gradients for parameter {name}.")
         #print("backward loss")
         optimizer.step()
         print("optimiser")
