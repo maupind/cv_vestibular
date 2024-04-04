@@ -31,8 +31,8 @@
           ipywidgets
           scikit-learn
           notebook
-          torch
-          torchinfo
+         torch
+         torchinfo
           botorch
           skorch
           ax

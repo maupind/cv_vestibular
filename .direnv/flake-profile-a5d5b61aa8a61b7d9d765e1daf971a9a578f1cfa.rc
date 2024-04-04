@@ -29,7 +29,7 @@ NIX_BINTOOLS='/nix/store/cc92grinhsyp2mq5sxlmz06z68gz1h98-binutils-wrapper-2.40'
 export NIX_BINTOOLS
 NIX_BINTOOLS_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu='1'
 export NIX_BINTOOLS_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu
-NIX_BUILD_CORES='16'
+NIX_BUILD_CORES='24'
 export NIX_BUILD_CORES
 NIX_CC='/nix/store/ln6zld1ia7rxddmxgbpfhrmb42rbxdw8-gcc-wrapper-13.2.0'
 export NIX_CC
@@ -41,7 +41,7 @@ NIX_ENFORCE_NO_NATIVE='1'
 export NIX_ENFORCE_NO_NATIVE
 NIX_HARDENING_ENABLE='bindnow format fortify fortify3 pic relro stackprotector strictoverflow'
 export NIX_HARDENING_ENABLE
-NIX_LDFLAGS='-rpath /home/danny/Documents/projects/cv_vestibular/outputs/out/lib  -L/nix/store/773r5ah0cc1ggagcwkwrbc3jrl47vzjk-python3-3.11.8-env/lib -L/nix/store/773r5ah0cc1ggagcwkwrbc3jrl47vzjk-python3-3.11.8-env/lib'
+NIX_LDFLAGS='-rpath /home/danny/Documents/Projects/cv_vestibular/outputs/out/lib  -L/nix/store/773r5ah0cc1ggagcwkwrbc3jrl47vzjk-python3-3.11.8-env/lib -L/nix/store/773r5ah0cc1ggagcwkwrbc3jrl47vzjk-python3-3.11.8-env/lib'
 export NIX_LDFLAGS
 NIX_NO_SELF_RPATH='1'
 NIX_STORE='/nix/store'
@@ -125,7 +125,7 @@ declare -a envHostHostHooks=('ccWrapper_addCVars' 'bintoolsWrapper_addLDVars' )
 declare -a envHostTargetHooks=('ccWrapper_addCVars' 'bintoolsWrapper_addLDVars' )
 declare -a envTargetTargetHooks=()
 declare -a fixupOutputHooks=('if [ -z "${dontPatchELF-}" ]; then patchELF "$prefix"; fi' 'if [[ -z "${noAuditTmpdir-}" && -e "$prefix" ]]; then auditTmpdir "$prefix"; fi' 'if [ -z "${dontGzipMan-}" ]; then compressManPages "$prefix"; fi' '_moveLib64' '_moveSbin' '_moveSystemdUserUnits' 'patchShebangsAuto' '_pruneLibtoolFiles' '_doStrip' )
-guess='16'
+guess='24'
 initialPath='/nix/store/x1xcjw5628crkk1pwr12y7nwbzkc3969-coreutils-9.4 /nix/store/i6y16f2jzcv1g1k12qdkislh3yqk2rl7-findutils-4.9.0 /nix/store/xcmwf4l5n35cislpzhbhqbnd31wwsbll-diffutils-3.10 /nix/store/y1y3rml47qnh0giqd32mj07qxxqy13qg-gnused-4.9 /nix/store/11b3chszacfr9liy829xqknzp3q88iji-gnugrep-3.11 /nix/store/78q5np4llnqhshx72kxm7w7q31pj0v7b-gawk-5.2.2 /nix/store/dxbzps4w5rikj7jdcyjcw98lk517gf0h-gnutar-1.35 /nix/store/zyyb8vi6jg1swr5f34rxgi9izck2r88h-gzip-1.13 /nix/store/b0gdx2hz2nyf9ap2n0zixczc7k2kqk9j-bzip2-1.0.8-bin /nix/store/w0q0c4jham4h0cbvi3ygydl6hrcmzn6x-gnumake-4.4.1 /nix/store/087167dfxal194pm54cmcbbxsfy3cjgn-bash-5.2p26 /nix/store/8hsz6cchg5yw1wz89mab5f89k3j7l03m-patch-2.7.6 /nix/store/xl7x35n2v2m398hki8q4ib235zn3hv20-xz-5.4.6-bin /nix/store/8ja6nib32kv3h9z6jwlh95b5ayma7wfx-file-5.45'
 mesonFlags=''
 export mesonFlags
@@ -133,7 +133,7 @@ name='nix-shell-env'
 export name
 nativeBuildInputs='/nix/store/773r5ah0cc1ggagcwkwrbc3jrl47vzjk-python3-3.11.8-env'
 export nativeBuildInputs
-out='/home/danny/Documents/projects/cv_vestibular/outputs/out'
+out='/home/danny/Documents/Projects/cv_vestibular/outputs/out'
 export out
 outputBin='out'
 outputDev='out'
@@ -164,7 +164,7 @@ preConfigurePhases=' updateAutotoolsGnuConfigScriptsPhase'
 declare -a preFixupHooks=('_moveToShare' '_multioutDocs' '_multioutDevs' )
 preferLocalBuild='1'
 export preferLocalBuild
-prefix='/home/danny/Documents/projects/cv_vestibular/outputs/out'
+prefix='/home/danny/Documents/Projects/cv_vestibular/outputs/out'
 declare -a propagatedBuildDepFiles=('propagated-build-build-deps' 'propagated-native-build-inputs' 'propagated-build-target-deps' )
 propagatedBuildInputs=''
 export propagatedBuildInputs
