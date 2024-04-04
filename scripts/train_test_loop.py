@@ -68,8 +68,8 @@ ax_client.create_experiment(
                 "log_scale": True
             },
     ],
-    objective_name= "accuracy",
-    minimize= False,
+    #objective_name= "accuracy",
+    #minimize= False
 )
 
 def set_random_seed(seed):
@@ -80,7 +80,7 @@ def set_random_seed(seed):
 
 set_random_seed(33)
 
-for i in range(3):
+for i in range(5):
     parameters, trial_index = ax_client.get_next_trial()
     # Evaluate the current set of parameters.
     evaluation_result = evaluate(parameters=parameters,
@@ -99,6 +99,7 @@ for i in range(3):
     #cv.evaluate(parameters=parameters)
     print(f"finished trial")
 
+print(f"finished optimisation")
 model = ax_client.generation_strategy.model
 #render(interact_contour(model=model, metric_name="avg_accuracy"))
 
@@ -109,7 +110,7 @@ render(ax_client.get_optimization_trace())
 best_parameters, values = ax_client.get_best_parameters()
 best_parameters
 
-
+print(f"got best parameters")
 
 # Instantiate and train the best model
 best_model = VestibularNetwork(max_epochs=best_parameters['max_epochs'],
@@ -121,10 +122,10 @@ best_model = VestibularNetwork(max_epochs=best_parameters['max_epochs'],
                                 iterator_train__batch_size=best_parameters['batch_size']
                                 )
 
-
+print(f"trained model")
 
 
 # Train the best model on the full training set
 best_model.fit(X_train_tensor, y_train_tensor)
 
-
+print(f"fit model")
