@@ -20,8 +20,8 @@ transform = transforms.Compose([
 train_dataloader, test_dataloader, video_dataset = create_dataloaders(
     data_dir="/home/danny/Documents/hpd_clips_test",
     transform=transform,
-    test_size=0.5,
-    batch_size=2
+    test_size=0.3,
+    batch_size=1
 )
 
 
@@ -37,9 +37,10 @@ input_shape = get_input_shape(train_dataloader)[2]
 
 
 
-vest_model = VestibularNetwork(input_shape = input_shape,
-                          hidden_units = 10,
-                          output_shape = 1,
+vest_model = VestibularNetwork(input_shape=input_shape,
+                          batch_size=1,
+                          hidden_units=20,
+                          output_shape=1,
                           num_classes=2)
 
 ############################## Trial for a random pass ############################

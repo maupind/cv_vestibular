@@ -53,7 +53,7 @@ def evaluate(parameters: str,
 
 
     for batch_idx, (video_frames_batch, outcomes) in enumerate(dataloader):
-        print(f"frame batch {video_frames_batch}")
+        print(f"frame batch {video_frames_batch.shape}")
         X_train_tensor = torch.tensor(video_frames_batch, dtype=torch.float).to(device)
         y_train_tensor = outcomes.float().unsqueeze(1).to(device)
         if torch.any(torch.isnan(X_train_tensor)) | (torch.any(torch.isnan(y_train_tensor))):
@@ -62,7 +62,8 @@ def evaluate(parameters: str,
         #print(f"show the train tensor {X_train_tensor}")
 
         # Perform forward pass
-        outputs = model(X_train_tensor)
+        print(f"start forward pass")
+        outputs = model(X_train_tensor, batch_size = 1)
         #print(f"show the outputs {outputs}")
         #print(f"show the train tensor {X_train_tensor}")
         #print(f"show the true outcomes {y_train_tensor}")
