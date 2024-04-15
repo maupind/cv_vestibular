@@ -31,7 +31,7 @@ def evaluate(parameters: str,
     X_train_list = []
     y_train_list = []  
 
-    max_norm = 1.0
+    max_norm = 0.25
 
     model = model.to(device)
     model.train()
@@ -55,9 +55,10 @@ def evaluate(parameters: str,
     for batch_idx, (video_frames_batch, outcomes) in enumerate(dataloader):
         print(f"frame batch {video_frames_batch.shape}")
         X_train_tensor = torch.tensor(video_frames_batch, dtype=torch.float).to(device)
+        #X_train_tensor = X_train_tensor.permute(0, 2, 1, 3, 4)
         y_train_tensor = outcomes.float().unsqueeze(1).to(device)
-        if torch.any(torch.isnan(X_train_tensor)) | (torch.any(torch.isnan(y_train_tensor))):
-            print("nan values found")
+       # if torch.any(torch.isnan(X_train_tensor)) | (torch.any(torch.isnan(y_train_tensor))):
+        #    print("nan values found")
 
         #print(f"show the train tensor {X_train_tensor}")
 
@@ -86,35 +87,42 @@ def evaluate(parameters: str,
         print(f"start backwards")
         loss.backward()
         #check_gradients(model)
-        for name, param in model.named_parameters():
-            if param.grad is not None:
-                print(f"Parameter {name}:")
-                print(param.grad)
-            else:
-                print(f"No gradients for parameter {name}.")
+        #for name, param in model.named_parameters():
+        #    if param.grad is not None:
+        #        print(f"Parameter {name}:")
+        #        print(param.grad)
+        #    else:
+        #        print(f"No gradients for parameter {name}.")
         #print("backward loss")
         optimizer.step()
         print("optimiser")
         # Compute ROC AUC score
-        #all_outputs = torch.cat((all_outputs, outputs.detach()), dim=0)
-        #all_labels = torch.cat((all_labels, y_train_tensor), dim=0)
-        #print("auc complete")
+        all_outputs = torch.cat((all_outputs, outputs.detach()), dim=0)
+        all_labels = torch.cat((all_labels, y_train_tensor), dim=0)
+        print("auc complete")
         # Calculate accuracy
-        predictions = (outputs > 0.5).float()  # Assuming binary classification
-        correct_predictions = (predictions == y_train_tensor).float().sum().item()
-        accuracy = correct_predictions / len(y_train_tensor)
-        accuracy_values.append(accuracy)
+
+        #correct_predictions = (predictions == y_train_tensor).float().sum().item()
+        #accuracy = correct_predictions / len(y_train_tensor)
+        #accuracy_values.append(accuracy)
 
 
     # Compute average loss
     avg_loss = sum(loss_values) / len(loss_values)
-    avg_accuracy = sum(accuracy_values) / len(accuracy_values)
-    #auc_score = roc_auc_score(all_outputs.cpu().numpy(), all_labels.cpu().numpy())
-    #print(f"AUC Score over all data: {auc_score}")
-
+    #print(f"outputs before predictions{all_outputs}")
+    #print(f"all true labels{all_labels}")
+    sigmoid = torch.nn.Sigmoid()
+    all_outputs_probabilities = sigmoid(all_outputs)
+    print(f"output probabilties{all_outputs_probabilities}")
+    predictions = (all_outputs_probabilities > 0.30).float() 
+    #avg_accuracy = sum(accuracy_values) / len(accuracy_values)
+    auc_score = roc_auc_score(all_labels.cpu().numpy(), predictions.cpu().numpy())
+    print(f"AUC Score over all data: {auc_score}")
+    print(f"Average loss: {avg_loss}")
 
     # Compute average ROC AUC score
-    return{'accuracy': avg_accuracy}
+    return{'roc_auc_score': auc_score,
+           'loss': avg_loss}
 
     #for batch_idx, (video_frames_batch, outcomes) in enumerate(dataloader):
         # Convert video_frames_batch and label_features_batch to tensors

@@ -6,15 +6,15 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from sklearn.model_selection import train_test_split
-from torch.utils.data import Dataset, DataLoader, TensorDataset, Subset
+from torch.utils.data import Dataset, DataLoader, TensorDataset, Subset, RandomSampler
 from torchvision import transforms
+from sklearn.model_selection import StratifiedKFold
+
 
 NUM_WORKERS = os.cpu_count()
 
-
-
 class VideoDataset(Dataset):
-    def __init__(self, video_dir, video_transform = None, clip_length = 10):
+    def __init__(self, video_dir, video_transform = None, clip_length = 300):
         super(VideoDataset).__init__()
         self.video_dir = video_dir
         self.video_files = [file for file in os.listdir(video_dir) if file.endswith('.mp4')]
@@ -124,7 +124,7 @@ def create_dataloaders(
 
     """
     # Load the data
-    video_dataset=VideoDataset(video_dir=data_dir, video_transform = transform, clip_length=10)
+    video_dataset=VideoDataset(video_dir=data_dir, video_transform = transform, clip_length=60)
     y = video_dataset.outcomes
     combined_data = (video_dataset.video_files, video_dataset.label_features)
     X = combined_data
@@ -145,7 +145,7 @@ def create_dataloaders(
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        sampler=RandomSampler(train_dataset),
         num_workers=num_workers,
         pin_memory=True
     )

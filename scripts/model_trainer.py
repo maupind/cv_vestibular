@@ -9,9 +9,9 @@ import torch
 
 transform = transforms.Compose([
     transforms.ToPILImage(),
-    transforms.Resize(size=(640, 360)),
+    transforms.Resize(size=(314, 314)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5,0.5,0.5], std=[0.5,0.5,0.5])
+    transforms.Normalize(mean=[0,0,0], std=[1,1,1])
 ])
 
 
@@ -20,7 +20,7 @@ transform = transforms.Compose([
 train_dataloader, test_dataloader, video_dataset = create_dataloaders(
     data_dir="/home/danny/Documents/hpd_clips_test",
     transform=transform,
-    test_size=0.3,
+    test_size=0.2,
     batch_size=1
 )
 
@@ -37,11 +37,13 @@ input_shape = get_input_shape(train_dataloader)[2]
 
 
 
-vest_model = VestibularNetwork(input_shape=input_shape,
+vest_model = VestibularNetwork(input_shape=3,
                           batch_size=1,
-                          hidden_units=20,
-                          output_shape=1,
-                          num_classes=2)
+                          #out_channels=64,
+                          hidden_units=64,
+                          #layers=4,
+                          #output_shape=1,
+                          num_classes=1)
 
 ############################## Trial for a random pass ############################
 
